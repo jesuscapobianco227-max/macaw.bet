@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macaw.bet</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{margin:0;font-family:Arial;background:#0a2f6b;color:white}
+
+header{
+background:#0c3d91;
+padding:15px;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:28px;
+font-weight:bold;
+}
+
+.logo{display:flex;align-items:center;gap:10px}
+
+.container{max-width:1200px;margin:auto;padding:20px}
+
+.card{
+background:#114fb3;
+padding:20px;
+border-radius:14px;
+margin-bottom:20px;
+box-shadow:0 6px 18px rgba(0,0,0,0.4);
+animation:fade .6s ease
+}
+
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.center{text-align:center}
+
+input,select{
+padding:10px;border-radius:8px;border:none;margin:6px
+}
+
+button{
+padding:10px 16px;border:none;border-radius:8px;background:#ffd700;color:black;font-weight:bold;cursor:pointer
+}
+
+button:hover{transform:scale(1.05)}
+
+.hidden{display:none}
+
+.flags img{width:28px;margin:0 6px}
+
+.players img{width:70px;border-radius:50%;margin:6px;border:3px solid white}
+
+.macaws{position:fixed;font-size:40px;opacity:.8}
+.m1{top:10%;left:4%}
+.m2{top:25%;right:4%}
+.m3{bottom:10%;left:6%}
+.m4{bottom:20%;right:6%}
+
+.odds{
+font-weight:bold;
+color:#ffd700;
+animation:oddsPulse 1.5s infinite alternate
+}
+
+@keyframes oddsPulse{from{opacity:.6}to{opacity:1}}
+
+.game{
+background:#1565d8;
+padding:15px;
+border-radius:12px;
+margin-top:12px
+}
+
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:8px;background:#1e6be0}
+
+</style>
+</head>
+<body>
+
+<div class="macaws m1">🦜</div>
+<div class="macaws m2">🦜</div>
+<div class="macaws m3">🦜</div>
+<div class="macaws m4">🦜</div>
+
+<header>
+<div class="logo">🦜 macaw.bet</div>
+</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="login" class="card center">
+<h2>Login</h2>
+<select id="tipoLogin">
+<option value="aluno">Aluno</option>
+<option value="professor">Professor</option>
+</select><br>
+<input id="nome" placeholder="Nome"><br>
+<input id="turma" placeholder="Turma"><br>
+<input id="email" placeholder="Email institucional"><br>
+<input id="senha" type="password" placeholder="Senha"><br>
+<button onclick="login()">Entrar</button>
+<p id="msg"></p>
+</div>
+
+<!-- PAINEL ALUNO -->
+<div id="alunoPanel" class="hidden">
+
+<div class="card center">
+<h2>Palpites da Copa</h2>
+<div class="players">
+<img src="https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg">
+<img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Lionel_Messi.jpg">
+<img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Neymar_2018.jpg">
+</div>
+</div>
+
+<div id="jogos"></div>
+
+<div class="card">
+<h3>Ranking</h3>
+<table class="table">
+<thead><tr><th>#</th><th>Aluno</th><th>Turma</th><th>Pontos</th></tr></thead>
+<tbody id="ranking"></tbody>
+</table>
+</div>
+
+</div>
+
+<!-- PAINEL PROFESSOR -->
+<div id="profPanel" class="hidden">
+
+<div class="card center">
+<h2>Painel do Professor 🦜</h2>
+<button onclick="mostrarRanking()">Atualizar Ranking</button>
+<button onclick="resetar()">Resetar Pontuação</button>
+<select id="filtroTurma" onchange="filtrarTurma()">
+<option value="todas">Todas Turmas</option>
+</select>
+</div>
+
+<div class="card">
+<table class="table">
+<thead><tr><th>#</th><th>Aluno</th><th>Turma</th><th>Pontos</th></tr></thead>
+<tbody id="rankingProf"></tbody>
+</table>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const grupos={
+A:["Qatar","Equador","Senegal","Holanda"],
+B:["Inglaterra","EUA","Irã","Gales"],
+C:["Argentina","Polônia","México","Arábia"],
+D:["França","Dinamarca","Tunísia","Austrália"],
+E:["Espanha","Alemanha","Japão","Costa Rica"],
+F:["Bélgica","Croácia","Marrocos","Canadá"],
+G:["Brasil","Suíça","Sérvia","Camarões"],
+H:["Portugal","Uruguai","Coreia","Gana"]
+}
+
+function jogosGrupo(times){
+let j=[]
+for(let i=0;i<times.length;i++){
+for(let k=i+1;k<times.length;k++){
+j.push([times[i],times[k]])
+}
+}
+return j
+}
+
+let jogos=[]
+
+for(const g in grupos){
+jogos=jogos.concat(jogosGrupo(grupos[g]))
+}
+
+/* completar até 64 jogos simulando mata mata */
+while(jogos.length<64){
+jogos.push(["Vencedor","Vencedor"])
+}
+
+let usuario=null
+let turma=null
+
+function login(){
+let tipo=document.getElementById("tipoLogin").value
+let email=document.getElementById("email").value
+
+if(!email.includes("@")){
+document.getElementById("msg").innerText="Email inválido"
+return
+}
+
+usuario=document.getElementById("nome").value
+turma=document.getElementById("turma").value
+
+if(!localStorage.getItem("ranking")){
+localStorage.setItem("ranking",JSON.stringify([]))
+}
+
+login.style.display="none"
+
+if(tipo==="aluno"){
+criarJogos()
+alunoPanel.classList.remove("hidden")
+}
+
+if(tipo==="professor"){
+profPanel.classList.remove("hidden")
+popularTurmas()
+mostrarRanking()
+}
+}
+
+function criarJogos(){
+let area=document.getElementById("jogos")
+area.innerHTML=""
+
+jogos.forEach((j,i)=>{
+
+let odds=(Math.random()*3+1).toFixed(2)
+
+let div=document.createElement("div")
+div.className="card game"
+
+div.innerHTML=`
+<h4>${j[0]} vs ${j[1]}</h4>
+<p class="odds">Odds ${odds}</p>
+<input class="g1" type="number" placeholder="Gols ${j[0]}">
+<input class="g2" type="number" placeholder="Gols ${j[1]}">
+<button onclick="apostar(this)">Apostar</button>
+<p class="res"></p>
+`
+
+area.appendChild(div)
+
+})
+}
+
+function apostar(btn){
+let card=btn.parentElement
+let g1=card.querySelector(".g1").value
+let g2=card.querySelector(".g2").value
+
+if(g1==""||g2==""){
+card.querySelector(".res").innerText="Digite placar"
+return
+}
+
+let pts=10
+if(g1==g2) pts=20
+if(Math.random()>.85) pts=40
+
+card.querySelector(".res").innerText="+"+pts+" pontos"
+
+salvar(pts)
+}
+
+function salvar(p){
+let r=JSON.parse(localStorage.getItem("ranking"))
+let a=r.find(x=>x.nome===usuario)
+
+if(a){a.pontos+=p}
+else{r.push({nome:usuario,turma:turma,pontos:p})}
+
+localStorage.setItem("ranking",JSON.stringify(r))
+mostrarRanking()
+}
+
+function mostrarRanking(){
+let r=JSON.parse(localStorage.getItem("ranking"))
+r.sort((a,b)=>b.pontos-a.pontos)
+
+let tb=document.getElementById("ranking")
+let tb2=document.getElementById("rankingProf")
+
+if(tb)tb.innerHTML=""
+if(tb2)tb2.innerHTML=""
+
+r.forEach((a,i)=>{
+let row=`<tr><td>${i+1}</td><td>${a.nome}</td><td>${a.turma}</td><td>${a.pontos}</td></tr>`
+if(tb)tb.innerHTML+=row
+if(tb2)tb2.innerHTML+=row
+})
+}
+
+function resetar(){
+localStorage.setItem("ranking",JSON.stringify([]))
+mostrarRanking()
+}
+
+function popularTurmas(){
+let r=JSON.parse(localStorage.getItem("ranking"))
+let select=document.getElementById("filtroTurma")
+
+let turmas=[...new Set(r.map(a=>a.turma))]
+
+turmas.forEach(t=>{
+let op=document.createElement("option")
+op.value=t
+op.textContent=t
+select.appendChild(op)
+})
+}
+
+function filtrarTurma(){
+let turmaSel=document.getElementById("filtroTurma").value
+let r=JSON.parse(localStorage.getItem("ranking"))
+
+if(turmaSel!=="todas"){
+r=r.filter(a=>a.turma===turmaSel)
+}
+
+r.sort((a,b)=>b.pontos-a.pontos)
+
+let tb=document.getElementById("rankingProf")
+tb.innerHTML=""
+
+r.forEach((a,i)=>{
+let row=`<tr><td>${i+1}</td><td>${a.nome}</td><td>${a.turma}</td><td>${a.pontos}</td></tr>`
+tb.innerHTML+=row
+})
+}
+
+</script>
+
+</body>
+</html>
